@@ -1,0 +1,16 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UE4Editor-TestUnrealEngine.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"C:\Users\82106\Documents\Unreal Projects\TestUnrealEngine\Intermediate\Build\Win64\TestUnrealEngineEditor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.obj"
+"C:\Users\82106\Documents\Unreal Projects\TestUnrealEngine\Intermediate\Build\Win64\UE4Editor\Development\TestUnrealEngine\TestUnrealEngine.cpp.obj"
+"C:\Users\82106\Documents\Unreal Projects\TestUnrealEngine\Intermediate\Build\Win64\UE4Editor\Development\TestUnrealEngine\TestUnrealEngineGameModeBase.cpp.obj"
+"C:\Users\82106\Documents\Unreal Projects\TestUnrealEngine\Intermediate\Build\Win64\UE4Editor\Development\TestUnrealEngine\TestUnrealEngine.init.gen.cpp.obj"
+"C:\Users\82106\Documents\Unreal Projects\TestUnrealEngine\Intermediate\Build\Win64\UE4Editor\Development\TestUnrealEngine\TestUnrealEngineGameModeBase.gen.cpp.obj"
+"C:\Users\82106\Documents\Unreal Projects\TestUnrealEngine\Intermediate\Build\Win64\UE4Editor\Development\TestUnrealEngine\Default.rc2.res"
+/OUT:"C:\Users\82106\Documents\Unreal Projects\TestUnrealEngine\Intermediate\Build\Win64\UE4Editor\Development\TestUnrealEngine\UE4Editor-TestUnrealEngine.lib"
+/INCLUDE:IMPLEMENT_MODULE_TestUnrealEngine
