@@ -4,7 +4,7 @@
 #include "MyAnimInstance.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PawnMovementComponent.h"
-
+#include "MyCharacter.h"
 
 UMyAnimInstance::UMyAnimInstance()
 {
@@ -13,23 +13,42 @@ UMyAnimInstance::UMyAnimInstance()
 		AttackMontage = AM.Object;
 }
 
-void UMyAnimInstance::PlayAttackMontage() // NativeUpdateAnimation()Àº ¸Å Æ½¸¶´Ù ½ÇÇàµÇ´Â ÇÔ¼öÀÌ¹Ç·Î,
-// Æ¯Á¤ Å°¸¦ ´­·¶À»¶§¸¸ ¹ßµ¿µÇ´Â attack°°Àº °æ¿ì´Â ¾Ö´Ï¸ÞÀÌ¼Ç Ã³¸®µµ Å¬¸¯ ´ç½Ã¿¡¸¸ ±¸ÇöÇÑ´Ù
+void UMyAnimInstance::PlayAttackMontage() // NativeUpdateAnimation()í  ë­ê°€ ë¬¸ì œì§€
 {
-	if (!Montage_IsPlaying(AttackMontage)) { // !Montage_IsPlaying À» ÅëÇØ ÀÌ¹Ì ÇØ´ç ¾Ö´Ï¸ÞÀÌ¼ÇÀÌ ½ÇÇàÁßÀÌ¶ó¸é Àç½ÇÇàÀ» ±ÝÇÑ´Ù.
 		Montage_Play(AttackMontage,1.f);
-	}
+	
 }
 
-void UMyAnimInstance::NativeUpdateAnimation(float DeltaSeconds) //¿£Áø ½ÇÇà¼ø¼­»ó °ÅÀÇ ÃÖÁ¾ÀûÀ¸·Î È£ÃâµÇ´Â ÇÔ¼ö, ¸Å ÇÁ·¹ÀÓ¸¶´Ù È£Ãâ
+void UMyAnimInstance::JumpToSection(int32 SectionIndex)
+{
+	FName Name = GetAttackMontageName(SectionIndex);
+	Montage_JumpToSection(Name, AttackMontage);
+}
+
+FName UMyAnimInstance::GetAttackMontageName(int32 SectionIndex)
+{
+
+	return FName(*FString::Printf(TEXT("Attack%d"),SectionIndex));
+}
+
+void UMyAnimInstance::AnimNotify_AttackHit()
+{
+
+	//UE_LOG(LogTemp, Log, TEXT("AnimNotify_AttackHit"));
+	OnAttackHit.Broadcast();
+}
+
+void UMyAnimInstance::NativeUpdateAnimation(float DeltaSeconds) //ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ È£ï¿½ï¿½Ç´ï¿½ ï¿½Ô¼ï¿½, ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ó¸ï¿½ï¿½ï¿½ È£ï¿½ï¿½
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 	auto Pawn = TryGetPawnOwner();
 	if (IsValid(Pawn))
 	{
-		Speed = Pawn->GetVelocity().Size(); // ¼Óµµ °¡Á®¿È 
+		Speed = Pawn->GetVelocity().Size(); // ï¿½Óµï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
 		
-		auto Character = Cast<ACharacter>(Pawn);
+		auto Character = Cast<AMyCharacter>(Pawn);
+		Vertical = Character->UpDownValue;
+		Horizontal = Character->LeftRightValue;
 		if (Character) {
 			IsFalling = Character->GetMovementComponent()->IsFalling();
 		}

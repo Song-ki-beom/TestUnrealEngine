@@ -18,9 +18,15 @@ public:
 	void LeftRight(float Value);
 	void Yaw(float Value);
 	void Attack();
+	void AttackCheck();
+	
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
+	
 
 public:	
 	// Called every frame
@@ -28,6 +34,11 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	FName GetAttackMontageName();
+
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 private:
 
 	UPROPERTY(VisibleAnywhere)
@@ -36,6 +47,28 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	class UCameraComponent* Camera;
 	
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere,Category=Pawn)
 	bool IsAttacking = false;
+
+	UPROPERTY()
+	class UMyAnimInstance* AnimInstance;
+
+	UPROPERTY()
+	int32 AttackIndex = 0;
+
+public:
+	UPROPERTY()
+		float LeftRightValue = 0;
+
+	UPROPERTY()
+		float UpDownValue = 0;
+	UPROPERTY(VisibleAnywhere)
+		UStaticMeshComponent* Weapon;
+	UPROPERTY(VisibleAnywhere)
+		class UMyStatComponent* Stat;
+	UPROPERTY(VisibleAnywhere)
+		class UWidgetComponent* HpBar;
+
+
+
 };

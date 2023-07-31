@@ -6,6 +6,12 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "MyAnimInstance.h"
+#include "CollisionQueryParams.h"
+#include "DrawDebugHelpers.h"
+#include "MyWeapon.h"
+#include "MyStatComponent.h"
+#include "Components/WidgetComponent.h"
+#include "MyCharacterWidget.h"
 // Sets default values
 AMyCharacter::AMyCharacter()
 {
@@ -13,29 +19,72 @@ AMyCharacter::AMyCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SM(TEXT("SkeletalMesh'/Game/ParagonYin/Characters/Heroes/Yin/Meshes/Yin.Yin'"));
 	if (SM.Succeeded()) {
-		GetMesh()->SetSkeletalMesh(SM.Object); // Character.hÀÇ Mesh °¡ private ÀÌ¹Ç·Î Mesh ¸¦ °¡Á®¿À´Â GetMesh() ¸¦ »ç¿ëÇÏ¿© °¡Á®¿Â´Ù.
+		GetMesh()->SetSkeletalMesh(SM.Object); // Character.hï¿½ï¿½ Mesh ï¿½ï¿½ private ï¿½Ì¹Ç·ï¿½ Mesh ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ GetMesh() ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Â´ï¿½.
 	}
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SPRINGARM"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CAMERA"));
 
-	SpringArm->SetupAttachment(GetCapsuleComponent()); // SetupAttachment ·Î ½ºÇÁ¸µ¾Ï(¼¿ÇÁÄ«¸Þ¶óºÀ) À» ´©±¸(ºÎ¸ð)¿¡ Ç×»ó ºÙÀÏÁö Á¤ÇÏ´Â°Í , 
-	//ACharacter.h ÀÇ »ý¼ºÀÚ¸¦ Âü°íÇÏ¸é CapsuleComponent¸¦ RootComponent¿¡ ÁöÁ¤ÇÏ¿´À¸¹Ç·Î ¾ê·Î ÁöÁ¤
-	Camera->SetupAttachment(SpringArm); // ¼¿Ä«ºÀ(SpringArm) ³¡¿¡ Ä«¸Þ¶ó ºÙÈû 
+	SpringArm->SetupAttachment(GetCapsuleComponent()); // SetupAttachment ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½Ä«ï¿½Þ¶ï¿½ï¿½) ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½(ï¿½Î¸ï¿½)ï¿½ï¿½ ï¿½×»ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ï´Â°ï¿½ , 
+	//ACharacter.h ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¸ï¿½ CapsuleComponentï¿½ï¿½ RootComponentï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+	Camera->SetupAttachment(SpringArm); // ï¿½ï¿½Ä«ï¿½ï¿½(SpringArm) ï¿½ï¿½ï¿½ï¿½ Ä«ï¿½Þ¶ï¿½ ï¿½ï¿½ï¿½ï¿½ 
 	
 	SpringArm->TargetArmLength = 500.f;
 	SpringArm->SetRelativeRotation(FRotator(-35.f, 0.f, 0.f));
 	GetMesh()->SetRelativeLocationAndRotation(
 		FVector(0.f, 0.f, -88.f), FRotator(0.f, -90.f, 0.f));
-	
 
+	Stat = CreateDefaultSubobject<UMyStatComponent>(TEXT("STAT"));
+	HpBar = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPBAR"));
+	HpBar->SetupAttachment(GetMesh());
+	HpBar->SetWidgetSpace(EWidgetSpace::Screen); // ui type showing on "Screen" that means never disappear from Screen
+	HpBar->SetRelativeLocation(FVector(0.f, 0.f, 200.f));
+	static ConstructorHelpers::FClassFinder<UUserWidget> UW(TEXT("WidgetBlueprint'/Game/UI/WBP_HpBar.WBP_HpBar_C'"));
+
+	if (UW.Succeeded()) {
+		HpBar->SetWidgetClass(UW.Class);
+		HpBar->SetDrawSize(FVector2D(200.f, 50.f));
+	}
+	
+	
+	
+	
 }
 
 // Called when the game starts or when spawned
 void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	auto AnimInstance = Cast<UMyAnimInstance>(GetMesh()->GetAnimInstance());
+	FName WeaponSocket(TEXT("hand_l_socket"));
+
+	auto CurrentWeapon = GetWorld()->SpawnActor<AMyWeapon>(FVector::ZeroVector, FRotator::ZeroRotator);
+	if (CurrentWeapon) {
+		CurrentWeapon->AttachToComponent(GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			WeaponSocket
+		);
+	}
+}
+
+void AMyCharacter::PostInitializeComponents()
+{
+	
+		Super::PostInitializeComponents();
+
+		AnimInstance = Cast<UMyAnimInstance>(GetMesh()->GetAnimInstance());
+		if (AnimInstance) {
+			AnimInstance->OnMontageEnded.AddDynamic(this, &AMyCharacter::OnAttackMontageEnded);
+			AnimInstance->OnAttackHit.AddUObject(this, &AMyCharacter::AttackCheck);
+
+
+		}
+
+		HpBar->InitWidget();
+
+		auto HpWidget = Cast<UMyCharacterWidget>(HpBar->GetUserWidgetObject());
+		if (HpWidget)
+			HpWidget->BindHp(Stat);
+	
 }
 
 // Called every frame
@@ -51,16 +100,22 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	PlayerInputComponent->BindAction(TEXT("Jump"), EInputEvent::IE_Pressed, this, &AMyCharacter::Jump);
 	PlayerInputComponent->BindAction(TEXT("Attack"), EInputEvent::IE_Pressed, this, &AMyCharacter::Attack);
-	PlayerInputComponent->BindAxis(TEXT("UpDown"), this, &AMyCharacter::UpDown); //Ãà(axis)¶û ÇÔ¼ö¶û binding 
+	PlayerInputComponent->BindAxis(TEXT("UpDown"), this, &AMyCharacter::UpDown); //ï¿½ï¿½(axis)ï¿½ï¿½ ï¿½Ô¼ï¿½ï¿½ï¿½ binding 
 	PlayerInputComponent->BindAxis(TEXT("LeftRight"), this, &AMyCharacter::LeftRight);
 	PlayerInputComponent->BindAxis(TEXT("Yaw"), this, &AMyCharacter::Yaw);
 
 }
 
+float AMyCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Stat->OnAttacked(DamageAmount);
+	return 0.0f;
+}
+
 void AMyCharacter::UpDown(float Value) 
 {
-	if (Value == 0.f)
-		return;
+	
+	UpDownValue = Value;
 	AddMovementInput(GetActorForwardVector(), Value);
 	//UE_LOG(LogTemp, Warning, TEXT("UpDown %f"), Value);
 
@@ -70,6 +125,7 @@ void AMyCharacter::LeftRight(float Value)
 {
 	if (Value == 0.f)
 		return;
+	LeftRightValue = Value;
 	AddMovementInput(GetActorRightVector(), Value);
 
 	//UE_LOG(LogTemp, Warning, TEXT("LeftRight %f"), Value);
@@ -79,15 +135,63 @@ void AMyCharacter::Yaw(float Value) {
 	AddControllerYawInput(Value);
 }
 
-void AMyCharacter::Attack() // jump³ª attack °°ÀÌ ¾î¶² »óÈ£ÀÛ¿ë¿¡¼­¸¸ ÀÛµ¿ÇÏ´Â ¾Ö´Ï¸ÅÀÌ¼ÇÀº animinstance¿¡¼­ º¯¼ö¸¦ Á¶ÀýÇÏ´Â °ÍÀÌ ¾Æ´Ñ
-// ¿©±â¼­ ÀüÈ¯ º¯¼ö¸¦ °ü¸®ÇÑ´Ù.
-{ //¾Ö´Ï¸ÞÀÌ¼Ç °ü·ÃµÈ°Ç, ½ºÄÌ·¹ÅæÀÌ ºÎÂøµÈ mesh ¿¡¼­ °¡Á®¿Ã¼ö ÀÖÀ½ 
+void AMyCharacter::Attack() 
+{ 
 	if (IsAttacking)
 		return;
-	auto AnimInstance = Cast<UMyAnimInstance>(GetMesh()->GetAnimInstance());
-	if (AnimInstance)
-	{
+	
 		AnimInstance->PlayAttackMontage();
-	}
+		AnimInstance->JumpToSection(AttackIndex);
+		AttackIndex = (AttackIndex + 1) % 3;
 	IsAttacking = true;
+}
+
+void AMyCharacter::AttackCheck()
+{
+	FHitResult HitResult;
+	FCollisionQueryParams Params(NAME_None, false, this);
+	float AttackRange = 100.f;
+	float AttackRadius = 50.f;
+
+	bool bResult = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		GetActorLocation(),
+		GetActorLocation() + GetActorForwardVector() * AttackRange,
+		FQuat::Identity,
+		ECollisionChannel::ECC_GameTraceChannel2,
+		FCollisionShape::MakeSphere(AttackRadius),
+		Params);
+
+
+	FVector Vec = GetActorForwardVector() * AttackRange;
+	FVector Center = GetActorLocation() + Vec * 0.5f;
+	float HalfHeight = AttackRange * 0.5f + AttackRadius;
+	FQuat Rotation = FRotationMatrix::MakeFromZ(Vec).ToQuat();
+	FColor DrawColor;
+	if (bResult)
+		DrawColor = FColor::Green;
+	else
+		DrawColor = FColor::Red;
+
+
+	DrawDebugCapsule(GetWorld(), Center, HalfHeight, AttackRadius,
+		Rotation, DrawColor, false, 2.f);
+
+	if (bResult && HitResult.Actor.IsValid()) {
+		UE_LOG(LogTemp, Log, TEXT("Hit Actor : %s"), *HitResult.Actor->GetName());
+		
+		FDamageEvent DamageEvent;
+		HitResult.Actor->TakeDamage(Stat->GetAttack(), DamageEvent, GetController(), this);
+
+	}
+
+
+
+	
+	
+}
+
+void AMyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	IsAttacking = false;
 }
